@@ -80,6 +80,9 @@ do
     ;;
   esac
 done
+
+. /lib/lsb/init-functions
+
 # OS specific support (must be 'true' or 'false').
 cygwin=false;
 darwin=false;
@@ -191,6 +194,37 @@ pidof_tomcat() {
         return 1
 }
 
+start_tomcat() {
+      "$JSVC" $JSVC_OPTS \
+      -java-home "$JAVA_HOME" \
+      -user $TOMCAT_USER \
+      -pidfile "$CATALINA_PID" \
+      -wait "$SERVICE_START_WAIT_TIME" \
+      -outfile "$CATALINA_OUT" \
+      -errfile "&1" \
+      -classpath "$CLASSPATH" \
+      "$LOGGING_CONFIG" $JAVA_OPTS $CATALINA_OPTS \
+      -Djava.endorsed.dirs="$JAVA_ENDORSED_DIRS" \
+      -Dcatalina.base="$CATALINA_BASE" \
+      -Dcatalina.home="$CATALINA_HOME" \
+      -Djava.io.tmpdir="$CATALINA_TMP" \
+      $CATALINA_MAIN
+      return $?
+}
+
+stop_tomcat() {
+      "$JSVC" $JSVC_OPTS \
+      -stop \
+      -pidfile "$CATALINA_PID" \
+      -classpath "$CLASSPATH" \
+      -Djava.endorsed.dirs="$JAVA_ENDORSED_DIRS" \
+      -Dcatalina.base="$CATALINA_BASE" \
+      -Dcatalina.home="$CATALINA_HOME" \
+      -Djava.io.tmpdir="$CATALINA_TMP" \
+      $CATALINA_MAIN
+      return $?
+}
+
 # ----- Execute The Requested Command -----------------------------------------
 case "$1" in
     run     )
@@ -215,55 +249,67 @@ case "$1" in
     start   )
       PID=$(pidof_tomcat) || true
       if [ -n "$PID" ]; then
-              echo "Tomcat is already running (pid $PID)."
-              exit 0
+              log_success_msg "Tomcat is already running (pid $PID)."
       fi
-
-      "$JSVC" $JSVC_OPTS \
-      -java-home "$JAVA_HOME" \
-      -user $TOMCAT_USER \
-      -pidfile "$CATALINA_PID" \
-      -wait "$SERVICE_START_WAIT_TIME" \
-      -outfile "$CATALINA_OUT" \
-      -errfile "&1" \
-      -classpath "$CLASSPATH" \
-      "$LOGGING_CONFIG" $JAVA_OPTS $CATALINA_OPTS \
-      -Djava.endorsed.dirs="$JAVA_ENDORSED_DIRS" \
-      -Dcatalina.base="$CATALINA_BASE" \
-      -Dcatalina.home="$CATALINA_HOME" \
-      -Djava.io.tmpdir="$CATALINA_TMP" \
-      $CATALINA_MAIN
-      exit $?
+      if start_tomcat; then
+              PID=$(pidof_tomcat) || true # TODO, incluir esto en el if o un check.
+              log_success_msg "Tomcat started (pid $PID)."
+      else
+              log_failure_msg "Can't start tomcat."
+      fi
     ;;
     stop    )
       PID=$(pidof_tomcat) || true
       if [ -z "$PID" ]; then
-              echo "Can't stop, Tomcat NOT running."
+              log_failure_msg "Can't stop, Tomcat NOT running."
               exit 3
       fi
-
-      "$JSVC" $JSVC_OPTS \
-      -stop \
-      -pidfile "$CATALINA_PID" \
-      -classpath "$CLASSPATH" \
-      -Djava.endorsed.dirs="$JAVA_ENDORSED_DIRS" \
-      -Dcatalina.base="$CATALINA_BASE" \
-      -Dcatalina.home="$CATALINA_HOME" \
-      -Djava.io.tmpdir="$CATALINA_TMP" \
-      $CATALINA_MAIN
-      exit $?
+      if stop_tomcat; then
+              log_success_msg "Tomcat stopped"
+      else
+              log_failure_msg "Can't stop tomcat."
+              exit 1 # Verificar código de salida.
+      fi
     ;;
-    restart  )
+    restart | reload | force-reload )
+      PID=$(pidof_tomcat) || true
+      if [ -n "$PID" ]; then
+              if stop_tomcat; then
+                     if start_tomcat; then
+				#TODO: Código repedido de start
+                            PID=$(pidof_tomcat) || true # TODO, incluir esto en el if o un check.
+                            log_success_msg "Tomcat started (pid $PID)."
+                     else
+                            log_failure_msg "Can't start tomcat."
+                     fi
+              fi
+      else
+              log_warning_msg "Tomcat is not running. Starting!"
+              #TODO: Código duplicado de estart
+              if start_tomcat; then
+                       PID=$(pidof_tomcat) || true # TODO, incluir esto en el if o un check.
+                       log_success_msg "Tomcat started (pid $PID)."
+              else
+                         log_failure_msg "Can't start tomcat."
+              fi
+      fi
     ;;
     try-restart  )
-	# Opcional:
-	#Reinicia el servicio si actualmente está activo.
-    ;;
-    reload   )
-	# Opcional: Recarga sin matar.
-    ;;
-    force-reload  )
-	# Recarga la configuración si es posible, si no reiniciar servicio.
+      PID=$(pidof_tomcat) || true
+      if [ -n "$PID" ]; then
+              # TODO: Código duplicado de Restart
+              if stop_tomcat; then
+                     if start_tomcat; then
+				#TODO: Código repedido de start
+                            PID=$(pidof_tomcat) || true # TODO, incluir esto en el if o un check.
+                            log_success_msg "Tomcat started (pid $PID)."
+                     else
+                            log_failure_msg "Can't start tomcat."
+                     fi
+              fi
+      else
+              echo "Tomcat is not running. Try $0 start"
+      fi
     ;;
     status   )
                 PID=$(pidof_tomcat) || true
