@@ -314,10 +314,9 @@ case "$1" in
     status   )
                 PID=$(pidof_tomcat) || true
                 if [ -n "$PID" ]; then
-                        echo "Tomcat is running (pid $PID)."
-                        exit 0
+                        log_success_msg "Tomcat is running (pid $PID)."
                 else
-                        echo "Tomcat is NOT running."
+                        log_failed_msg "Tomcat is NOT running."
                         if [ -e "$CATALINA_PID" ]; then
                                 exit 1
                         else
@@ -349,6 +348,8 @@ case "$1" in
       echo "  start             Start Tomcat"
       echo "  stop              Stop Tomcat"
       echo "  status            Tomcat status"
+      echo "  restart | reload | force-reload Restart Tomcat"
+      echo "  try-restart       Restart Tomcat if it is running"
       echo "  version           What version of commons daemon and Tomcat"
       echo "                    are you running?"
       exit 1
