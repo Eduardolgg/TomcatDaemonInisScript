@@ -205,7 +205,7 @@ start_tomcat() {
 }
 
 restart_tomcat() {
-      if stop_daemon; then
+      if stop_tomcat; then
               start_tomcat
       fi
 }
@@ -308,7 +308,7 @@ case "$1" in
                 if [ -n "$PID" ]; then
                         log_success_msg "Tomcat is running (pid $PID)."
                 else
-                        log_failed_msg "Tomcat is NOT running."
+                        log_failure_msg "Tomcat is NOT running."
                         if [ -e "$CATALINA_PID" ]; then
                                 exit 1
                         else
