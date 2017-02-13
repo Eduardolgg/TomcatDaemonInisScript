@@ -195,6 +195,31 @@ pidof_tomcat() {
 }
 
 start_tomcat() {
+      if start_daemon; then
+              PID=$(pidof_tomcat) || true # TODO, incluir esto en el if o un check.
+              log_success_msg "Tomcat started (pid $PID)."
+      else
+              log_failure_msg "Can't start tomcat."
+              exit 1 # Verificat código de salida.
+      fi
+}
+
+restart_tomcat() {
+      if stop_daemon; then
+              start_tomcat
+      fi
+}
+
+stop_tomcat(){
+      if stop_daemon; then
+              log_success_msg "Tomcat stopped"
+      else
+              log_failure_msg "Can't stop tomcat."
+              exit 1 # Verificar código de salida.
+      fi
+}
+
+start_daemon() {
       "$JSVC" $JSVC_OPTS \
       -java-home "$JAVA_HOME" \
       -user $TOMCAT_USER \
@@ -212,7 +237,7 @@ start_tomcat() {
       return $?
 }
 
-stop_tomcat() {
+stop_daemon() {
       "$JSVC" $JSVC_OPTS \
       -stop \
       -pidfile "$CATALINA_PID" \
@@ -251,12 +276,7 @@ case "$1" in
       if [ -n "$PID" ]; then
               log_success_msg "Tomcat is already running (pid $PID)."
       fi
-      if start_tomcat; then
-              PID=$(pidof_tomcat) || true # TODO, incluir esto en el if o un check.
-              log_success_msg "Tomcat started (pid $PID)."
-      else
-              log_failure_msg "Can't start tomcat."
-      fi
+      start_tomcat
     ;;
     stop    )
       PID=$(pidof_tomcat) || true
@@ -264,49 +284,21 @@ case "$1" in
               log_failure_msg "Can't stop, Tomcat NOT running."
               exit 3
       fi
-      if stop_tomcat; then
-              log_success_msg "Tomcat stopped"
-      else
-              log_failure_msg "Can't stop tomcat."
-              exit 1 # Verificar código de salida.
-      fi
+      stop_tomcat
     ;;
     restart | reload | force-reload )
       PID=$(pidof_tomcat) || true
       if [ -n "$PID" ]; then
-              if stop_tomcat; then
-                     if start_tomcat; then
-				#TODO: Código repedido de start
-                            PID=$(pidof_tomcat) || true # TODO, incluir esto en el if o un check.
-                            log_success_msg "Tomcat started (pid $PID)."
-                     else
-                            log_failure_msg "Can't start tomcat."
-                     fi
-              fi
+              restart_tomcat
       else
               log_warning_msg "Tomcat is not running. Starting!"
-              #TODO: Código duplicado de estart
-              if start_tomcat; then
-                       PID=$(pidof_tomcat) || true # TODO, incluir esto en el if o un check.
-                       log_success_msg "Tomcat started (pid $PID)."
-              else
-                         log_failure_msg "Can't start tomcat."
-              fi
+              start_tomcat
       fi
     ;;
     try-restart  )
       PID=$(pidof_tomcat) || true
       if [ -n "$PID" ]; then
-              # TODO: Código duplicado de Restart
-              if stop_tomcat; then
-                     if start_tomcat; then
-				#TODO: Código repedido de start
-                            PID=$(pidof_tomcat) || true # TODO, incluir esto en el if o un check.
-                            log_success_msg "Tomcat started (pid $PID)."
-                     else
-                            log_failure_msg "Can't start tomcat."
-                     fi
-              fi
+              restart_tomcat
       else
               echo "Tomcat is not running. Try $0 start"
       fi
