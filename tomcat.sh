@@ -24,6 +24,15 @@
 # Short-Description: Start/stop tomcat
 # Description: Start/stop tomcat Java Servlet Container
 ### END INIT INFO
+
+DESC="Apache Tomcat java container"
+DAEMON=/opt/tomcat/bin/jsvc
+JSVC=$DAEMON
+
+if [ -f /etc/default/tomcat ] ; then
+    . /etc/default/tomcat
+fi
+
 #
 # -----------------------------------------------------------------------------
 # Commons Daemon wrapper script.

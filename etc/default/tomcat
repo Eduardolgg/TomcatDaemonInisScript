@@ -1,0 +1,10 @@
+PATH=/opt/java/jre/bin:/opt/java/jdk/bin:$PATH
+JDK_HOME=/opt/java/jdk
+JAVA_HOME=/opt/java/jdk
+
+CATALINA_HOME=/opt/apache-tomcat
+CATALINA_BASE=$CATALINA_HOME
+CATALINA_PID=/var/run/tomcat.pid
+TOMCAT_USER=tomcat
+
+SERVICE_START_WAIT_TIME=40
