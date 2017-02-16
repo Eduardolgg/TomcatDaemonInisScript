@@ -25,6 +25,7 @@
 # Description: Start/stop tomcat Java Servlet Container
 ### END INIT INFO
 
+NAME=tomcat
 DESC="Apache Tomcat java container"
 DAEMON=/opt/tomcat/bin/jsvc
 JSVC=$DAEMON
@@ -196,7 +197,7 @@ fi
 
 pidof_tomcat() {
         if [ -e "$CATALINA_PID" ]; then
-                if pidof jsvc.exec | tr ' ' '\n' | grep -w $(cat $CATALINA_PID); then
+                if pidof $NAME | tr ' ' '\n' | grep -w $(cat $CATALINA_PID); then
                         return 0
                 fi
         fi
@@ -242,6 +243,7 @@ start_daemon() {
       -Dcatalina.base="$CATALINA_BASE" \
       -Dcatalina.home="$CATALINA_HOME" \
       -Djava.io.tmpdir="$CATALINA_TMP" \
+      -procname $NAME \
       $CATALINA_MAIN
       return $?
 }
@@ -255,6 +257,7 @@ stop_daemon() {
       -Dcatalina.base="$CATALINA_BASE" \
       -Dcatalina.home="$CATALINA_HOME" \
       -Djava.io.tmpdir="$CATALINA_TMP" \
+      -procname $NAME \
       $CATALINA_MAIN
       return $?
 }
@@ -309,7 +312,8 @@ case "$1" in
       if [ -n "$PID" ]; then
               restart_tomcat
       else
-              echo "Tomcat is not running. Try $0 start"
+              log_failure_msg "Tomcat is not running. Try $0 start"
+              exit 3
       fi
     ;;
     status   )
