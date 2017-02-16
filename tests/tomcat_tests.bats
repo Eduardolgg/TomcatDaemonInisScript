@@ -1,98 +1,111 @@
-#!/bin/bash
+#!/usr/bin/env bats
 
-@setup {
-	TOMCAT="../tomcat.sh"
-	PIDS=$(pidoff tomcat)
-	for pid in PIDS do
-		kill pid
-		sleep 5
+setup() {
+	TOMCAT="./tomcat"
+	PIDS=$(pidof tomcat) || true
+	for pid in $PIDS 
+	do
+		kill $pid
 	done
-	#OUTPUT=""
+	# Wait for tomcat stop.
+	sleep 5
 }
 
-######## General Functions #######
-
-# Print an error message on standard output.
-# $1 Message to print.
-#print_error() {
-#	echo "ERROR: $1"
-#}
-
-# Print an success message on standard output.
-# $1 Message to print.
-#print_success() {
-#	echo "SUCCESS: $1"
-#}
-
-# $1 commad to tomcat script.
-#call_tomcat_script() {
-#	OUTPUT=$($TOMCAT $1)
-#	return $?
-#}
-
-# Run a test.
-# $1: Test name.
-# $2: tomcat command.
-# $3: Error message.
-# $4: Success message.
-#test() {
-#	echo $1
-#	call_tomcat_script $2
-#
-#	if [ $? -ne 0 ]; then
-#		print_error $3
-#	else
-#		print_success $4
-#	fi
-#}
-
-
-######## evn config  #######
-
-# Start in a clean enviroment.
-#TEMP=$($TOMCAT stop)
-
-#if [ $? -ne 0 ]; then
-#	print_error "Can't set a clean enviroment."
-#fi 
-
-######## Tests #######
-
-#test "Start tomcat" start \
 #	"Tomcat failed to start, check SERVICE_START_WAIT_TIME value on /etc/default/tomcat" \
 #	"Tomcat started"
-@test Start tomcat {
+@test "Start tomcat" {
 	run $TOMCAT start
 	[ "$status" -eq 0 ]
+	[ $(expr "$output" : "Tomcat started (pid [0-9]*).") -ne 0 ]
 }
 
-@test Double start tomcat {
+@test "Double start tomcat" {
 	run $TOMCAT start
 	[ "$status" -eq 0 ]
 	
 	run $TOMCAT start
 	[ "$status" -eq 1 ]
+	[ $(expr "$output" : "Tomcat is already running (pid [0-9]*).") -ne 0 ]
 
 }
 
-#test "Stop tomcat" stop \
-#	"Tomcat failed to stop." \
-#	"Tomcat stoped"
+@test "Stop a stoped tomcat" {
+	run $TOMCAT stop
+	[ "$status" -eq 3 ]
+}
 
-#test "Restart tomcat" restart \
-#	"Tomcat failed to restart" \
-#	"Tomcat restarted"
+@test "Start/Stop tomcat" {
+	run $TOMCAT start
+	[ "$status" -eq 0 ]
 
-#test "Reload tomcat" reload \
-#	"Tomcat failed to reload" \
-#	"Tomcat reloaded"
+	run $TOMCAT stop
+	[ "$status" -eq 3 ]
+	[ $(expr "$output" : "*Can't stop, Tomcat NOT running*") -ne 0 ]
+}
 
-#test "Force-reload tomcat" force-reload \
-#	"Tomcat failed to force-reload" \
-#	"Tomcat foced to reload"
+@test "Restart a stoped tomcat" {
+	run $TOMCAT restart
+	[ "$status" -eq 0 ]
+	[ $(expr "${lines[0]}" : "*Tomcat is not running. Starting!*") -ne 0 ]
+	[ $(expr "${lines[1]}" : "Tomcat started (pid [0-9]*).") -ne 0 ]
+}
 
-#test "Try restart tomcat" try-restart \
-#	"Tomcat failed to try-restart" \
-#	"Tomcat restarted"
+@test "Restart tomcat" {
+	run $TOMCAT start
+	[ "$status" -eq 0 ]
 
+	run $TOMCAT restart
+	[ "$status" -eq 0 ]
+	[ $(expr "${lines[0]}" : "*Tomcat stopped*") -ne 0 ]
+	[ $(expr "${lines[1]}" : "Tomcat started (pid [0-9]*).") -ne 0 ]
+}
+
+@test "Reload a stoped tomcat" {
+	run $TOMCAT reload
+	[ "$status" -eq 0 ]
+	[ $(expr "${lines[0]}" : "*Tomcat is not running. Starting!*") -ne 0 ]
+	[ $(expr "${lines[1]}" : "Tomcat started (pid [0-9]*).") -ne 0 ]
+}
+
+@test "Reload tomcat" {
+	run $TOMCAT start
+	[ "$status" -eq 0 ]
+
+	run $TOMCAT reload
+	[ "$status" -eq 0 ]
+	[ $(expr "${lines[0]}" : "*Tomcat stopped*") -ne 0 ]
+	[ $(expr "${lines[1]}" : "Tomcat started (pid [0-9]*).") -ne 0 ]
+}
+
+@test "Force-Reload a stoped tomcat" {
+	run $TOMCAT force-reload
+	[ "$status" -eq 0 ]
+	[ $(expr "${lines[0]}" : "*Tomcat is not running. Starting!*") -ne 0 ]
+	[ $(expr "${lines[1]}" : "Tomcat started (pid [0-9]*).") -ne 0 ]
+}
+
+@test "Force-reload tomcat" {
+	run $TOMCAT start
+	[ "$status" -eq 0 ]
+
+	run $TOMCAT force-reload
+	[ $(expr "${lines[0]}" : "*Tomcat stopped*") -ne 0 ]
+	[ $(expr "${lines[1]}" : "Tomcat started (pid [0-9]*).") -ne 0 ]
+}
+
+@test "Try restart a stoped tomcat" {
+	run $TOMCAT try-restart
+	[ "$status" -eq 3 ]
+	[ $(expr "$output" : "Tomcat is not running. Try*") -ne 0 ]
+
+}
+
+@test "Try restar a started tomcat" {
+	run $TOMCAT start
+	[ "$status" -eq 0 ]
+
+	run $TOMCAT try-restart
+	[ $(expr "${lines[0]}" : "*Tomcat stopped*") -ne 0 ]
+	[ $(expr "${lines[1]}" : "Tomcat started (pid [0-9]*).") -ne 0 ]
+}
 
