@@ -1,6 +1,7 @@
 #!/usr/bin/env bats
 
 setup() {
+    JSVC="/opt/tomcat/bin/jsvc"
 	SCRIPT_NAME="tomcat.sh"
 	SCRIPT_PATH="../" && [ -f $SCRIPT_NAME ] && SCRIPT_PATH="./"
 	TOMCAT="$SCRIPT_PATH$SCRIPT_NAME"
@@ -23,6 +24,11 @@ setup() {
 
 @test "Checking execution permissions" {
 	[ -x $TOMCAT ]
+}
+
+@test "Check presence of apache commons daemon" {
+	[ -f $JSVC ]
+	[ -x $JSVC ]
 }
 
 #	"Tomcat failed to start, check SERVICE_START_WAIT_TIME value on /etc/default/tomcat" \
