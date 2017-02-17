@@ -1,8 +1,8 @@
 #!/usr/bin/env bats
 
 setup() {
-	SCRIPT_PATH="/etc/init.d/"
-	SCRIPT_NAME="tomcat"
+	SCRIPT_NAME="tomcat.sh"
+	SCRIPT_PATH="../" && [ -f $SCRIPT_NAME ] && SCRIPT_PATH="./"
 	TOMCAT="$SCRIPT_PATH$SCRIPT_NAME"
 	PIDS=$(pidof tomcat) || true
 	for pid in $PIDS 
@@ -13,8 +13,19 @@ setup() {
 	sleep 5
 }
 
+@test "Test if script exists" {
+	[ -f $TOMCAT ]
+}
+
+@test "Checking user running the tests" {
+	[ "$(whoami)" = "root" ]
+}
+
+@test "Checking execution permissions" {
+	[ -x $TOMCAT ]
+}
+
 #	"Tomcat failed to start, check SERVICE_START_WAIT_TIME value on /etc/default/tomcat" \
-#	"Tomcat started"
 @test "Start tomcat" {
 	run $TOMCAT start
 	[ "$status" -eq 0 ]
